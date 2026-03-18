@@ -18,8 +18,13 @@ type FormFieldType = FormField["type"];
 /**
  * Map a Jira field's schema to a DynamicFormRenderer field type.
  */
-function mapFieldType(field: RequestTypeField): FormFieldType {
+function mapFieldType(field: RequestTypeField): FormFieldType | null {
   const { type, system, items } = field.jiraSchema;
+
+  // ─── Unsupported field types (skip rendering) ───
+  // service-entity-field: JSM ITSM "Affected services". Requires separate
+  // services API to fetch options — not supported in V1.
+  if (items === "service-entity-field") return null;
 
   // Known system fields
   if (system === "description") return "paragraph";
@@ -58,8 +63,9 @@ function mapFieldType(field: RequestTypeField): FormFieldType {
 /**
  * Map a single Jira RequestTypeField to a FormField.
  */
-function mapField(field: RequestTypeField): FormField {
+function mapField(field: RequestTypeField): FormField | null {
   const type = mapFieldType(field);
+  if (!type) return null; // Unsupported field type — skip
 
   const formField: FormField = {
     id: field.fieldId,
@@ -101,7 +107,9 @@ export function jiraFieldsToFormSchema(
     (f) => f.visible && f.jiraSchema.items !== "attachment"
   );
 
-  const formFields = visibleFields.map(mapField);
+  const formFields = visibleFields
+    .map(mapField)
+    .filter((f): f is FormField => f !== null);
 
   return {
     id: `form-${requestTypeName.toLowerCase().replace(/\s+/g, "-")}`,
