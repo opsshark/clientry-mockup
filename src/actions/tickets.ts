@@ -20,6 +20,7 @@ export interface TicketListItem {
   summary: string;
   status: string;
   statusCategory: string;
+  requestTypeId: string;
   reporter: string;
   createdDate: string;
   createdFriendly: string;
@@ -190,6 +191,7 @@ function mapRequestToListItem(req: JiraRequest): TicketListItem {
     summary: extractSummary(req),
     status: req.currentStatus.status,
     statusCategory: req.currentStatus.statusCategory,
+    requestTypeId: req.requestTypeId,
     reporter: req.reporter.displayName,
     createdDate: req.createdDate.iso8601,
     createdFriendly: req.createdDate.friendly,
