@@ -12,6 +12,7 @@ import {
   ChevronRight,
   Layers
 } from "lucide-react";
+import { signOut } from "@/actions/auth";
 
 const navItems = [
   { label: "Submit", href: "/portal", icon: Send },
@@ -26,21 +27,48 @@ const managerItems = [
 
 interface PortalSidebarProps {
   isManager?: boolean;
+  userEmail?: string | null;
+  userName?: string | null;
 }
 
-export default function PortalSidebar({ isManager }: PortalSidebarProps) {
+function getInitials(name: string): string {
+  return name
+    .split(" ")
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+}
+
+function getDisplayName(email: string): string {
+  // Extract name from email: "theo@opsshark.com" → "Theo"
+  const local = email.split("@")[0];
+  return local.charAt(0).toUpperCase() + local.slice(1);
+}
+
+export default function PortalSidebar({ isManager, userEmail, userName }: PortalSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
+
+  const displayName = userName ?? (userEmail ? getDisplayName(userEmail) : (isManager ? "Mike Ross" : "Alex Johnson"));
+  const displayRole = isManager ? "Manager" : "End User";
+  const initials = getInitials(displayName);
 
   const isActive = (href: string) => {
     if (href === "/portal") return pathname === "/portal";
     return pathname.startsWith(href);
   };
 
+  async function handleSignOut() {
+    await signOut();
+    router.push("/");
+    router.refresh();
+  }
+
   return (
     <aside className="w-64 min-h-screen flex flex-col border-r"
       style={{ backgroundColor: '#141418', borderColor: '#1e1e2a' }}>
-      
+
       {/* Company branding */}
       <div className="p-5 border-b" style={{ borderColor: '#1e1e2a' }}>
         <div className="flex items-center gap-3">
@@ -60,11 +88,11 @@ export default function PortalSidebar({ isManager }: PortalSidebarProps) {
         <div className="flex items-center gap-3">
           <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold"
             style={{ backgroundColor: 'rgba(6,182,212,0.2)', color: '#06b6d4' }}>
-            {isManager ? 'MR' : 'AJ'}
+            {initials}
           </div>
           <div>
-            <div className="text-xs font-medium">{isManager ? 'Mike Ross' : 'Alex Johnson'}</div>
-            <div className="text-xs" style={{ color: '#475569' }}>{isManager ? 'Manager' : 'End User'}</div>
+            <div className="text-xs font-medium">{displayName}</div>
+            <div className="text-xs" style={{ color: '#475569' }}>{displayRole}</div>
           </div>
         </div>
       </div>
@@ -121,7 +149,7 @@ export default function PortalSidebar({ isManager }: PortalSidebarProps) {
       {/* Footer */}
       <div className="p-4 border-t" style={{ borderColor: '#1e1e2a' }}>
         <button
-          onClick={() => router.push('/')}
+          onClick={handleSignOut}
           className="flex items-center gap-2 text-xs w-full px-2 py-1.5 rounded"
           style={{ color: '#475569' }}>
           <LogOut size={14} />

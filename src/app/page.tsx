@@ -2,21 +2,35 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Mail, Layers, ArrowRight, Building2 } from "lucide-react";
+import { Mail, Layers, ArrowRight, Building2, Loader2 } from "lucide-react";
+import { sendMagicLink } from "@/actions/auth";
 
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleSendLink = () => {
-    if (email) setSent(true);
-  };
+  async function handleSendLink() {
+    if (!email.trim()) return;
+    setLoading(true);
+    setError("");
+
+    const result = await sendMagicLink(email);
+
+    if (result.success) {
+      setSent(true);
+    } else {
+      setError(result.error ?? "Something went wrong");
+    }
+    setLoading(false);
+  }
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-4"
       style={{ backgroundColor: '#0f0f13' }}>
-      
+
       {/* Clientry branding */}
       <div className="flex flex-col items-center mb-10">
         <div className="flex items-center gap-2 mb-3">
@@ -34,7 +48,7 @@ export default function LoginPage() {
       {/* Main card */}
       <div className="w-full max-w-md rounded-2xl p-8 border"
         style={{ backgroundColor: '#141418', borderColor: '#1e1e2a' }}>
-        
+
         {/* Client branding */}
         <div className="flex items-center gap-3 mb-8 pb-6 border-b" style={{ borderColor: '#1e1e2a' }}>
           <div className="w-10 h-10 rounded-lg flex items-center justify-center"
@@ -76,12 +90,27 @@ export default function LoginPage() {
                 />
               </div>
             </div>
+
+            {error && (
+              <p className="text-sm" style={{ color: '#f87171' }}>{error}</p>
+            )}
+
             <button
               onClick={handleSendLink}
+              disabled={loading || !email.trim()}
               className="w-full py-3 rounded-lg font-medium text-sm flex items-center justify-center gap-2 transition-all"
-              style={{ backgroundColor: '#06b6d4', color: 'white' }}>
-              Send magic link
-              <ArrowRight size={16} />
+              style={{
+                backgroundColor: loading || !email.trim() ? '#1e1e2a' : '#06b6d4',
+                color: loading || !email.trim() ? '#475569' : 'white',
+              }}>
+              {loading ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : (
+                <>
+                  Send magic link
+                  <ArrowRight size={16} />
+                </>
+              )}
             </button>
           </div>
         ) : (
@@ -94,6 +123,12 @@ export default function LoginPage() {
             <p className="text-sm" style={{ color: '#64748b' }}>
               We sent a link to <span style={{ color: '#06b6d4' }}>{email}</span>
             </p>
+            <button
+              onClick={() => { setSent(false); setEmail(""); }}
+              className="mt-4 text-xs"
+              style={{ color: '#64748b' }}>
+              Use a different email
+            </button>
           </div>
         )}
 

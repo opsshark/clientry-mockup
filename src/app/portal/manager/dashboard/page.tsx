@@ -1,6 +1,5 @@
 "use client";
 
-import PortalSidebar from "@/components/PortalSidebar";
 import {
   BarChart, Bar, PieChart, Pie, Cell,
   LineChart, Line, XAxis, YAxis, Tooltip,
@@ -69,10 +68,6 @@ export default function ManagerDashboardPage() {
   const slaPercent = 87;
 
   return (
-    <div className="flex min-h-screen" style={{ backgroundColor: '#0f0f13' }}>
-      <PortalSidebar isManager />
-
-      <main className="flex-1 p-8 overflow-auto">
         <div className="max-w-6xl">
           {/* Header */}
           <div className="mb-8">
@@ -261,7 +256,5 @@ export default function ManagerDashboardPage() {
             </table>
           </div>
         </div>
-      </main>
-    </div>
   );
 }

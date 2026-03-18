@@ -1,6 +1,5 @@
 "use client";
 
-import PortalSidebar from "@/components/PortalSidebar";
 import StatusBadge from "@/components/StatusBadge";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
 import { Bug, MessageCircle, RefreshCw, Clock } from "lucide-react";
@@ -33,10 +32,6 @@ export default function PersonalDashboard() {
   const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
 
   return (
-    <div className="flex min-h-screen" style={{ backgroundColor: '#0f0f13' }}>
-      <PortalSidebar />
-
-      <main className="flex-1 p-8">
         <div className="max-w-5xl">
           {/* Header */}
           <div className="mb-8">
@@ -148,7 +143,5 @@ export default function PersonalDashboard() {
             </div>
           </div>
         </div>
-      </main>
-    </div>
   );
 }

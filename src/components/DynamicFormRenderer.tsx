@@ -2,24 +2,24 @@
 
 import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Upload, Zap, ChevronRight } from "lucide-react";
+import { Upload, ChevronRight } from "lucide-react";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
-interface FieldOption {
+export interface FieldOption {
   value: string;
   label: string;
 }
 
-interface Conditional {
+export interface Conditional {
   fieldId: string;
   operator: "equals" | "in" | "contains";
   values: string[];
 }
 
-interface FormField {
+export interface FormField {
   id: string;
-  type: "short_text" | "paragraph" | "dropdown" | "single_choice" | "checkbox_group" | "file_upload" | "date_picker";
+  type: "short_text" | "paragraph" | "dropdown" | "single_choice" | "checkbox_group" | "file_upload" | "date_picker" | "number";
   label: string;
   description?: string;
   required?: boolean;
@@ -30,13 +30,13 @@ interface FormField {
   multiple?: boolean;
 }
 
-interface FormSection {
+export interface FormSection {
   id: string;
   title: string;
   fields: FormField[];
 }
 
-interface FormSchema {
+export interface FormSchema {
   id: string;
   title: string;
   sections: FormSection[];
@@ -439,6 +439,7 @@ export default function DynamicFormRenderer({ schema, onSubmit }: DynamicFormRen
   const [values, setValues] = useState<Record<string, unknown>>({});
   const [errors, setErrors] = useState<Set<string>>(new Set());
   const [currentSection, setCurrentSection] = useState(0);
+  const [submitAttempted, setSubmitAttempted] = useState(false);
 
   const setValue = useCallback((fieldId: string, value: unknown) => {
     setValues((prev) => ({ ...prev, [fieldId]: value }));
@@ -455,22 +456,47 @@ export default function DynamicFormRenderer({ schema, onSubmit }: DynamicFormRen
     return evaluateConditional(field.conditional, values);
   }
 
+  function isFieldComplete(field: FormField): boolean {
+    const val = values[field.id];
+    if (!val) return false;
+    if (typeof val === "string" && !val.trim()) return false;
+    if (Array.isArray(val) && val.length === 0) return false;
+    return true;
+  }
+
+  // Required fields progress — only count visible required fields
+  const visibleRequiredFields = allFields.filter((f) => f.required && isVisible(f));
+  const completedRequiredFields = visibleRequiredFields.filter((f) => isFieldComplete(f));
+  const requiredTotal = visibleRequiredFields.length;
+  const requiredDone = completedRequiredFields.length;
+  const progressPct = requiredTotal > 0 ? (requiredDone / requiredTotal) * 100 : 100;
+
   function validate(): boolean {
     const newErrors = new Set<string>();
     for (const field of allFields) {
       if (!field.required) continue;
       if (!isVisible(field)) continue;
-      const val = values[field.id];
-      if (!val || (typeof val === "string" && !val.trim()) || (Array.isArray(val) && val.length === 0)) {
+      if (!isFieldComplete(field)) {
         newErrors.add(field.id);
       }
     }
     setErrors(newErrors);
+
+    // Scroll to first error
+    if (newErrors.size > 0) {
+      const firstErrorId = Array.from(newErrors)[0];
+      setTimeout(() => {
+        const el = document.querySelector(`[data-field-id="${firstErrorId}"]`);
+        el?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 100);
+    }
+
     return newErrors.size === 0;
   }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setSubmitAttempted(true);
     if (validate()) {
       onSubmit(values);
     }
@@ -536,6 +562,22 @@ export default function DynamicFormRenderer({ schema, onSubmit }: DynamicFormRen
             hasError={hasError}
           />
         );
+      case "number":
+        return (
+          <div>
+            <FieldLabel field={field} hasError={hasError} />
+            <input
+              type="number"
+              placeholder={field.placeholder}
+              value={(val as string) || ""}
+              onChange={(e) => setValue(field.id, e.target.value)}
+              style={hasError ? inputError : inputBase}
+              onFocus={(e) => { if (!hasError) e.target.style.borderColor = "#06b6d4"; }}
+              onBlur={(e) => { e.target.style.borderColor = hasError ? "#f87171" : "#1e1e2a"; }}
+            />
+            {hasError && <p style={{ fontSize: "12px", color: "#f87171", marginTop: "4px" }}>This field is required</p>}
+          </div>
+        );
       default:
         return null;
     }
@@ -556,56 +598,57 @@ export default function DynamicFormRenderer({ schema, onSubmit }: DynamicFormRen
     const newErrors = new Set(errors);
     for (const field of section.fields) {
       if (!field.required || !isVisible(field)) continue;
-      const val = values[field.id];
-      if (!val || (typeof val === "string" && !val.trim()) || (Array.isArray(val) && val.length === 0)) {
+      if (!isFieldComplete(field)) {
         newErrors.add(field.id);
       }
     }
     setErrors(newErrors);
-    const sectionErrors = section.fields.some((f) => newErrors.has(f.id) && isVisible(f));
-    if (!sectionErrors) {
+    const sectionErrorFields = section.fields.filter((f) => newErrors.has(f.id) && isVisible(f));
+    if (sectionErrorFields.length > 0) {
+      setSubmitAttempted(true);
+      setTimeout(() => {
+        const el = document.querySelector(`[data-field-id="${sectionErrorFields[0].id}"]`);
+        el?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 100);
+    } else {
       setCurrentSection((s) => s + 1);
     }
   }
 
   return (
     <form onSubmit={handleSubmit}>
-      {/* Dynamic banner */}
-      <div style={{
-        display: "flex",
-        alignItems: "center",
-        gap: "8px",
-        padding: "10px 14px",
-        borderRadius: "8px",
-        border: "1px solid rgba(6,182,212,0.25)",
-        backgroundColor: "rgba(6,182,212,0.06)",
-        marginBottom: "24px",
-      }}>
-        <Zap size={14} style={{ color: "#06b6d4", flexShrink: 0 }} />
-        <span style={{ fontSize: "13px", color: "#22d3ee" }}>
-          This form is dynamically rendered from your JSM project&apos;s Proforma schema
-        </span>
-      </div>
+      {/* Progress bar — required fields completion */}
+      {requiredTotal > 0 && (
+        <div style={{ marginBottom: "28px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+            <span style={{ fontSize: "13px", color: "#64748b" }}>
+              {requiredDone} of {requiredTotal} required fields complete
+            </span>
+            <span style={{
+              fontSize: "12px",
+              fontWeight: 500,
+              color: progressPct === 100 ? "#34d399" : "#94a3b8",
+            }}>
+              {Math.round(progressPct)}%
+            </span>
+          </div>
+          <div style={{ height: "4px", backgroundColor: "#1e1e2a", borderRadius: "4px", overflow: "hidden" }}>
+            <motion.div
+              style={{
+                height: "100%",
+                backgroundColor: progressPct === 100 ? "#34d399" : "#06b6d4",
+                borderRadius: "4px",
+              }}
+              animate={{ width: `${progressPct}%` }}
+              transition={{ duration: 0.4, ease: "easeOut" }}
+            />
+          </div>
+        </div>
+      )}
 
-      {/* Progress bar */}
-      <div style={{ marginBottom: "28px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
-          <span style={{ fontSize: "13px", color: "#64748b" }}>
-            Section {currentSection + 1} of {totalSections}
-          </span>
-          <span style={{ fontSize: "13px", color: "#94a3b8", fontWeight: 500 }}>
-            {schema.sections[currentSection].title}
-          </span>
-        </div>
-        <div style={{ height: "4px", backgroundColor: "#1e1e2a", borderRadius: "4px", overflow: "hidden" }}>
-          <motion.div
-            style={{ height: "100%", backgroundColor: "#06b6d4", borderRadius: "4px" }}
-            animate={{ width: `${((currentSection + 1) / totalSections) * 100}%` }}
-            transition={{ duration: 0.4, ease: "easeOut" }}
-          />
-        </div>
-        {/* Section steps */}
-        <div style={{ display: "flex", gap: "4px", marginTop: "10px" }}>
+      {/* Section tabs — only show when there are multiple sections */}
+      {totalSections > 1 && (
+        <div style={{ display: "flex", gap: "4px", marginBottom: "20px" }}>
           {schema.sections.map((s, i) => (
             <button
               key={s.id}
@@ -628,7 +671,7 @@ export default function DynamicFormRenderer({ schema, onSubmit }: DynamicFormRen
             </button>
           ))}
         </div>
-      </div>
+      )}
 
       {/* Section content */}
       <AnimatePresence mode="wait">
@@ -657,7 +700,7 @@ export default function DynamicFormRenderer({ schema, onSubmit }: DynamicFormRen
 
                 if (!hasConditional) {
                   return (
-                    <div key={field.id}>
+                    <div key={field.id} data-field-id={field.id}>
                       {renderField(field)}
                     </div>
                   );
@@ -665,7 +708,7 @@ export default function DynamicFormRenderer({ schema, onSubmit }: DynamicFormRen
 
                 return (
                   <AnimatedField key={field.id} visible={visible}>
-                    <div style={{
+                    <div data-field-id={field.id} style={{
                       padding: "16px",
                       borderRadius: "8px",
                       border: "1px solid rgba(6,182,212,0.2)",
@@ -680,6 +723,24 @@ export default function DynamicFormRenderer({ schema, onSubmit }: DynamicFormRen
           </div>
         </motion.div>
       </AnimatePresence>
+
+      {/* Error summary */}
+      {submitAttempted && errors.size > 0 && (
+        <div style={{
+          marginTop: "16px",
+          padding: "12px 16px",
+          borderRadius: "8px",
+          border: "1px solid rgba(248,113,113,0.3)",
+          backgroundColor: "rgba(248,113,113,0.06)",
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+        }}>
+          <span style={{ fontSize: "13px", color: "#f87171" }}>
+            {errors.size} required {errors.size === 1 ? "field needs" : "fields need"} to be completed before submitting
+          </span>
+        </div>
+      )}
 
       {/* Navigation */}
       <div style={{ display: "flex", justifyContent: "space-between", marginTop: "20px" }}>
