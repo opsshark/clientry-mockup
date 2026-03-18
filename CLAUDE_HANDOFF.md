@@ -344,6 +344,22 @@ The renderer takes a form schema (fetched from JSM API) and renders each field b
 
 ---
 
+## Spike Findings (Real API Gotchas)
+
+Discovered while building `clientry-spike` against demostudio.atlassian.net:
+
+1. **Select field values are numeric IDs** — JSM returns `"10004"` not `"High"`. Pass the numeric string directly to the API on submit. Don't try to map to labels.
+2. **Jira icon URLs require auth** — Avatar/icon URLs from the API need the API token to render. Use emoji fallbacks for portal display.
+3. **Filter internal request types** — Request types with `groupIds: []` are internal only. Filter them out — don't show on the portal.
+4. **Next.js 16: params are async** — `params` and `searchParams` in page components are now Promises. Must `await` them.
+5. **Vercel CLI uploads env vars automatically** — `.env.local` vars get uploaded on deploy. No need for GitHub integration for env management.
+
+**Spike repos:**
+- GitHub: https://github.com/theo-opsshark/clientry-spike
+- Live: https://clientry-spike.vercel.app
+
+---
+
 ## Notes for Claude Code
 
 - Travis prefers **direct, no-fluff communication**. Skip the pleasantries.
