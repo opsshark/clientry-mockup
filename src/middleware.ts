@@ -63,14 +63,23 @@ export async function middleware(request: NextRequest) {
         process.env.SUPABASE_SERVICE_ROLE_KEY!
       );
 
-      const { data: portalUser } = await service
+      const { data: portalUser, error: portalError } = await service
         .from("portal_users")
         .select("first_name")
         .eq("email", user.email.toLowerCase())
         .single();
 
+      console.log("[middleware] welcome gate:", {
+        email: user.email,
+        portalUser,
+        portalError: portalError?.message,
+        isWelcomePage,
+        isPortalRoute,
+      });
+
       // No name set → redirect to welcome (unless already there)
       if (portalUser && !portalUser.first_name && !isWelcomePage) {
+        console.log("[middleware] redirecting to /welcome");
         const url = request.nextUrl.clone();
         url.pathname = "/welcome";
         return NextResponse.redirect(url);
