@@ -184,7 +184,22 @@ export interface ProformaForm {
 
 // ─── Internal Helpers ────────────────────────────────────────
 
+/**
+ * Service account tokens (scoped) require Bearer auth + api.atlassian.com gateway.
+ * Personal API tokens use Basic auth + direct site URL.
+ */
+function isServiceAccount(config: JiraConfig): boolean {
+  return config.email.includes("@serviceaccount.atlassian.com");
+}
+
 function getAuthHeaders(config: JiraConfig): Record<string, string> {
+  if (isServiceAccount(config)) {
+    return {
+      Authorization: `Bearer ${config.apiToken}`,
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    };
+  }
   const auth = Buffer.from(`${config.email}:${config.apiToken}`).toString("base64");
   return {
     Authorization: `Basic ${auth}`,
@@ -193,12 +208,27 @@ function getAuthHeaders(config: JiraConfig): Record<string, string> {
   };
 }
 
-function serviceDeskUrl(config: JiraConfig, path: string): string {
-  return `${config.baseUrl}/rest/servicedeskapi/servicedesk/${config.serviceDeskId}${path}`;
+/**
+ * Build the base URL for API calls.
+ * Service accounts must use the api.atlassian.com gateway with cloud ID.
+ * Personal tokens use the direct site URL.
+ */
+async function getApiBase(config: JiraConfig): Promise<string> {
+  if (isServiceAccount(config)) {
+    const cloudId = await getCloudId(config);
+    return `https://api.atlassian.com/ex/jira/${cloudId}`;
+  }
+  return config.baseUrl;
 }
 
-function requestUrl(config: JiraConfig, path: string): string {
-  return `${config.baseUrl}/rest/servicedeskapi/request${path}`;
+async function serviceDeskUrl(config: JiraConfig, path: string): Promise<string> {
+  const base = await getApiBase(config);
+  return `${base}/rest/servicedeskapi/servicedesk/${config.serviceDeskId}${path}`;
+}
+
+async function requestUrl(config: JiraConfig, path: string): Promise<string> {
+  const base = await getApiBase(config);
+  return `${base}/rest/servicedeskapi/request${path}`;
 }
 
 async function jiraFetch<T>(url: string, config: JiraConfig, init?: RequestInit): Promise<T> {
@@ -223,10 +253,8 @@ async function jiraFetch<T>(url: string, config: JiraConfig, init?: RequestInit)
  * Filters out internal-only types (groupIds is empty).
  */
 export async function getRequestTypes(config: JiraConfig): Promise<RequestType[]> {
-  const data = await jiraFetch<PaginatedResponse<RequestType>>(
-    serviceDeskUrl(config, "/requesttype?limit=50"),
-    config
-  );
+  const url = await serviceDeskUrl(config, "/requesttype?limit=50");
+  const data = await jiraFetch<PaginatedResponse<RequestType>>(url, config);
   return data.values.filter((rt) => rt.groupIds.length > 0);
 }
 
@@ -237,10 +265,8 @@ export async function getRequestTypeFields(
   config: JiraConfig,
   requestTypeId: string
 ): Promise<{ requestTypeFields: RequestTypeField[]; canRaiseOnBehalfOf: boolean }> {
-  return jiraFetch(
-    serviceDeskUrl(config, `/requesttype/${requestTypeId}/field`),
-    config
-  );
+  const url = await serviceDeskUrl(config, `/requesttype/${requestTypeId}/field`);
+  return jiraFetch(url, config);
 }
 
 /**
@@ -261,11 +287,11 @@ export async function createRequest(
     body.raiseOnBehalfOf = raiseOnBehalfOf;
   }
 
-  return jiraFetch<CreatedRequest>(
-    requestUrl(config, ""),
-    config,
-    { method: "POST", body: JSON.stringify(body) }
-  );
+  const url = await requestUrl(config, "");
+  return jiraFetch<CreatedRequest>(url, config, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
 }
 
 /**
@@ -277,12 +303,8 @@ export async function getMyRequests(
 ): Promise<PaginatedResponse<JiraRequest>> {
   const start = options?.start ?? 0;
   const limit = options?.limit ?? 50;
-  // Using ALL_REQUESTS pre-auth (agent API key sees everything).
-  // After Phase 2 auth, switch to filtering by authenticated user's email.
-  return jiraFetch(
-    requestUrl(config, `?requestOwnership=ALL_REQUESTS&start=${start}&limit=${limit}`),
-    config
-  );
+  const url = await requestUrl(config, `?requestOwnership=ALL_REQUESTS&start=${start}&limit=${limit}`);
+  return jiraFetch(url, config);
 }
 
 /**
@@ -295,10 +317,8 @@ export async function getOrgRequests(
 ): Promise<PaginatedResponse<JiraRequest>> {
   const start = options?.start ?? 0;
   const limit = options?.limit ?? 50;
-  return jiraFetch(
-    requestUrl(config, `?organizationId=${organizationId}&start=${start}&limit=${limit}`),
-    config
-  );
+  const url = await requestUrl(config, `?organizationId=${organizationId}&start=${start}&limit=${limit}`);
+  return jiraFetch(url, config);
 }
 
 /**
@@ -308,10 +328,8 @@ export async function getRequestByKey(
   config: JiraConfig,
   issueKey: string
 ): Promise<JiraRequest> {
-  return jiraFetch(
-    requestUrl(config, `/${issueKey}?expand=requestFieldValues`),
-    config
-  );
+  const url = await requestUrl(config, `/${issueKey}?expand=requestFieldValues`);
+  return jiraFetch(url, config);
 }
 
 /**
@@ -324,10 +342,8 @@ export async function getRequestComments(
 ): Promise<PaginatedResponse<JiraComment>> {
   const start = options?.start ?? 0;
   const limit = options?.limit ?? 50;
-  return jiraFetch(
-    requestUrl(config, `/${issueKey}/comment?public=true&start=${start}&limit=${limit}`),
-    config
-  );
+  const url = await requestUrl(config, `/${issueKey}/comment?public=true&start=${start}&limit=${limit}`);
+  return jiraFetch(url, config);
 }
 
 /**
@@ -338,11 +354,11 @@ export async function addRequestComment(
   issueKey: string,
   body: string
 ): Promise<JiraComment> {
-  return jiraFetch<JiraComment>(
-    requestUrl(config, `/${issueKey}/comment`),
-    config,
-    { method: "POST", body: JSON.stringify({ body, public: true }) }
-  );
+  const url = await requestUrl(config, `/${issueKey}/comment`);
+  return jiraFetch<JiraComment>(url, config, {
+    method: "POST",
+    body: JSON.stringify({ body, public: true }),
+  });
 }
 
 /**
@@ -351,10 +367,8 @@ export async function addRequestComment(
 export async function getOrganizations(
   config: JiraConfig
 ): Promise<PaginatedResponse<{ id: string; name: string }>> {
-  return jiraFetch(
-    `${config.baseUrl}/rest/servicedeskapi/organization`,
-    config
-  );
+  const base = await getApiBase(config);
+  return jiraFetch(`${base}/rest/servicedeskapi/organization`, config);
 }
 
 /**
@@ -369,10 +383,8 @@ export async function getRequestSlas(
   completedCycles: Array<{ remainingTime: { friendly: string }; breached: boolean }>;
   ongoingCycle: { remainingTime: { friendly: string }; breached: boolean } | null;
 }>> {
-  return jiraFetch(
-    requestUrl(config, `/${issueKey}/sla`),
-    config
-  );
+  const url = await requestUrl(config, `/${issueKey}/sla`);
+  return jiraFetch(url, config);
 }
 
 /**
@@ -383,8 +395,8 @@ let cachedCloudId: string | null = null;
 
 async function getCloudId(config: JiraConfig): Promise<string> {
   if (cachedCloudId) return cachedCloudId;
+  // _edge/tenant_info is public — no auth needed, always use direct site URL
   const res = await fetch(`${config.baseUrl}/_edge/tenant_info`, {
-    headers: getAuthHeaders(config),
     cache: "no-store",
   });
   if (!res.ok) throw new Error("Failed to get cloud ID");
