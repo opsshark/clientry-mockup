@@ -55,47 +55,8 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(url);
     }
 
-    // First-login gate: check if user has set their name
-    // Uses raw fetch instead of Supabase JS client for Edge Runtime compatibility
-    if ((isPortalRoute || isWelcomePage) && user?.email) {
-      try {
-        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-        const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-        const encodedEmail = encodeURIComponent(user.email.toLowerCase());
-
-        const res = await fetch(
-          `${supabaseUrl}/rest/v1/portal_users?email=eq.${encodedEmail}&select=first_name&limit=1`,
-          {
-            headers: {
-              apikey: serviceKey,
-              Authorization: `Bearer ${serviceKey}`,
-            },
-          }
-        );
-
-        if (res.ok) {
-          const rows = await res.json();
-          const portalUser = rows?.[0];
-          const hasName = portalUser?.first_name != null && portalUser.first_name !== "";
-
-          // No name set → redirect to welcome (unless already there)
-          if (!hasName && !isWelcomePage) {
-            const url = request.nextUrl.clone();
-            url.pathname = "/welcome";
-            return NextResponse.redirect(url);
-          }
-
-          // Name is set but on welcome page → redirect to portal
-          if (hasName && isWelcomePage) {
-            const url = request.nextUrl.clone();
-            url.pathname = "/portal";
-            return NextResponse.redirect(url);
-          }
-        }
-      } catch {
-        // If DB query fails, don't block — let the page render
-      }
-    }
+    // Welcome gate is handled in portal layout (server component)
+    // to avoid Edge Runtime compatibility issues with DB queries
   }
 
   return supabaseResponse;

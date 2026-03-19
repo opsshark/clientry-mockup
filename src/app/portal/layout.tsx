@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import PortalSidebar from "@/components/PortalSidebar";
 import { getCurrentUser } from "@/actions/auth";
 import { getPortalData } from "@/actions/portal";
@@ -8,6 +9,12 @@ export default async function PortalLayout({
   children: React.ReactNode;
 }) {
   const user = await getCurrentUser();
+
+  // First-login gate: redirect to welcome if name not set
+  if (user && !user.firstName) {
+    redirect("/welcome");
+  }
+
   const portal = user?.portalId
     ? await getPortalData(user.portalId)
     : null;
