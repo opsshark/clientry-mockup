@@ -157,17 +157,15 @@ export async function submitRequest(
  * Submit Proforma form answers to an existing issue.
  */
 async function submitProformaAnswers(
-  config: { baseUrl: string; email: string; apiToken: string },
+  config: { baseUrl: string; email: string; apiToken: string; serviceDeskId: string },
   issueId: string,
   formId: string,
   answers: Record<string, { text?: string; choices?: string[]; date?: string; users?: string[] }>
 ): Promise<void> {
-  const auth = Buffer.from(`${config.email}:${config.apiToken}`).toString("base64");
+  const { getAuthHeaders: getHeaders } = await import("@/lib/jira");
 
   // Get cloud ID
-  const tenantRes = await fetch(`${config.baseUrl}/_edge/tenant_info`, {
-    headers: { Authorization: `Basic ${auth}` },
-  });
+  const tenantRes = await fetch(`${config.baseUrl}/_edge/tenant_info`);
   const { cloudId } = (await tenantRes.json()) as { cloudId: string };
 
   // Format answers for Proforma API
@@ -184,11 +182,7 @@ async function submitProformaAnswers(
 
   await fetch(url, {
     method: "PUT",
-    headers: {
-      Authorization: `Basic ${auth}`,
-      Accept: "application/json",
-      "Content-Type": "application/json",
-    },
+    headers: getHeaders(config),
     body: JSON.stringify({ answers: formattedAnswers }),
   });
 }

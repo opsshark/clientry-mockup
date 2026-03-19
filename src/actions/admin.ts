@@ -99,16 +99,16 @@ export async function testJiraConnection(
   await requireAdmin();
 
   try {
-    const auth = Buffer.from(`${email}:${apiToken}`).toString("base64");
+    const { getAuthHeaders, isServiceAccount, getApiBase } = await import("@/lib/jira");
+    const config = { baseUrl: siteUrl.replace(/\/$/, ""), email, apiToken, serviceDeskId: "" };
+    const headers = getAuthHeaders(config);
+    const base = isServiceAccount(config)
+      ? await getApiBase(config)
+      : siteUrl.replace(/\/$/, "");
+
     const res = await fetch(
-      `${siteUrl.replace(/\/$/, "")}/rest/servicedeskapi/servicedesk`,
-      {
-        headers: {
-          Authorization: `Basic ${auth}`,
-          Accept: "application/json",
-        },
-        cache: "no-store",
-      }
+      `${base}/rest/servicedeskapi/servicedesk`,
+      { headers, cache: "no-store" }
     );
 
     if (!res.ok) {
@@ -142,16 +142,16 @@ export async function getAvailableServiceDesks(
 ): Promise<Array<{ id: string; name: string }>> {
   await requireAdmin();
 
-  const auth = Buffer.from(`${email}:${apiToken}`).toString("base64");
+  const { getAuthHeaders, isServiceAccount, getApiBase } = await import("@/lib/jira");
+  const config = { baseUrl: siteUrl.replace(/\/$/, ""), email, apiToken, serviceDeskId: "" };
+  const headers = getAuthHeaders(config);
+  const base = isServiceAccount(config)
+    ? await getApiBase(config)
+    : siteUrl.replace(/\/$/, "");
+
   const res = await fetch(
-    `${siteUrl.replace(/\/$/, "")}/rest/servicedeskapi/servicedesk`,
-    {
-      headers: {
-        Authorization: `Basic ${auth}`,
-        Accept: "application/json",
-      },
-      cache: "no-store",
-    }
+    `${base}/rest/servicedeskapi/servicedesk`,
+    { headers, cache: "no-store" }
   );
 
   if (!res.ok) return [];

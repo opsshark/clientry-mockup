@@ -188,11 +188,11 @@ export interface ProformaForm {
  * Service account tokens (scoped) require Bearer auth + api.atlassian.com gateway.
  * Personal API tokens use Basic auth + direct site URL.
  */
-function isServiceAccount(config: JiraConfig): boolean {
+export function isServiceAccount(config: JiraConfig): boolean {
   return config.email.includes("@serviceaccount.atlassian.com");
 }
 
-function getAuthHeaders(config: JiraConfig): Record<string, string> {
+export function getAuthHeaders(config: JiraConfig): Record<string, string> {
   if (isServiceAccount(config)) {
     return {
       Authorization: `Bearer ${config.apiToken}`,
@@ -213,7 +213,7 @@ function getAuthHeaders(config: JiraConfig): Record<string, string> {
  * Service accounts must use the api.atlassian.com gateway with cloud ID.
  * Personal tokens use the direct site URL.
  */
-async function getApiBase(config: JiraConfig): Promise<string> {
+export async function getApiBase(config: JiraConfig): Promise<string> {
   if (isServiceAccount(config)) {
     const cloudId = await getCloudId(config);
     return `https://api.atlassian.com/ex/jira/${cloudId}`;
