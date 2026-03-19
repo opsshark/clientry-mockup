@@ -63,7 +63,7 @@ export function SkeletonText({ width = "100%" }: { width?: string }) {
 
 export function SubmitPageSkeleton() {
   return (
-    <div>
+    <div className="max-w-4xl">
       <div className="mb-8">
         <Pulse style={{ width: 200, height: 28, marginBottom: 8 }} />
         <Pulse style={{ width: 300, height: 14 }} />
@@ -79,7 +79,7 @@ export function SubmitPageSkeleton() {
 
 export function TicketListSkeleton() {
   return (
-    <div>
+    <div className="max-w-5xl">
       <div className="flex items-center justify-between mb-6">
         <Pulse style={{ width: 120, height: 28 }} />
         <Pulse style={{ width: 140, height: 36, borderRadius: "0.5rem" }} />
@@ -103,7 +103,7 @@ export function TicketListSkeleton() {
 
 export function DashboardSkeleton() {
   return (
-    <div>
+    <div className="max-w-6xl">
       <div className="mb-8">
         <Pulse style={{ width: 250, height: 28, marginBottom: 8 }} />
         <Pulse style={{ width: 180, height: 14 }} />
@@ -141,7 +141,7 @@ export function DashboardSkeleton() {
 
 export function TicketDetailSkeleton() {
   return (
-    <div>
+    <div className="max-w-5xl">
       <Pulse style={{ width: 80, height: 14, marginBottom: 24 }} />
       <div className="flex gap-8">
         <div className="flex-1">

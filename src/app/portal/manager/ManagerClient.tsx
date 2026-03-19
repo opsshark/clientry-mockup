@@ -161,10 +161,10 @@ export default function ManagerClient({
 
       {/* Table */}
       <div
-        className="rounded-xl border overflow-hidden"
+        className="rounded-xl border overflow-x-auto"
         style={{ backgroundColor: "#141418", borderColor: "#1e1e2a" }}
       >
-        <table className="w-full">
+        <table className="w-full min-w-[600px]">
           <thead>
             <tr style={{ borderBottom: "1px solid #1e1e2a" }}>
               {["Ticket", "Summary", "Submitter", "Status", "Created"].map(
@@ -251,11 +251,25 @@ export default function ManagerClient({
         </table>
 
         {filtered.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-sm" style={{ color: "#475569" }}>
+          <div className="text-center py-16">
+            <div
+              className="w-12 h-12 rounded-xl mx-auto mb-4 flex items-center justify-center"
+              style={{ backgroundColor: "#1e1e2a" }}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#475569" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+              </svg>
+            </div>
+            <p className="text-sm font-medium mb-1" style={{ color: "#94a3b8" }}>
+              {tickets.length === 0 ? "No organization tickets yet" : "No results"}
+            </p>
+            <p className="text-xs" style={{ color: "#475569" }}>
               {tickets.length === 0
-                ? "No tickets in this organization yet"
-                : "No tickets match your filters"}
+                ? "Tickets submitted by your team will appear here."
+                : "Try adjusting your search or filter."}
             </p>
           </div>
         )}

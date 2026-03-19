@@ -81,7 +81,7 @@ export default function TicketDetailClient({
         My Tickets
       </button>
 
-      <div className="max-w-5xl flex gap-6">
+      <div className="max-w-5xl flex flex-col md:flex-row gap-6">
         {/* Main content */}
         <div className="flex-1 min-w-0">
           {/* Header */}
@@ -255,7 +255,7 @@ export default function TicketDetailClient({
         </div>
 
         {/* Sidebar metadata */}
-        <div className="w-64 flex-shrink-0">
+        <div className="w-full md:w-64 flex-shrink-0">
           <div
             className="rounded-xl border p-5 sticky top-8"
             style={{ backgroundColor: "#141418", borderColor: "#1e1e2a" }}

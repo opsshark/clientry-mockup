@@ -65,7 +65,7 @@ export default function DashboardContent({ data, userName }: Props) {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         {stats.map(({ label, value, color }) => (
           <div
             key={label}
@@ -106,10 +106,10 @@ export default function DashboardContent({ data, userName }: Props) {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-5 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
             {/* Donut chart */}
             <div
-              className="col-span-2 rounded-xl p-5 border"
+              className="col-span-1 md:col-span-2 rounded-xl p-5 border"
               style={{ backgroundColor: "#141418", borderColor: "#1e1e2a" }}
             >
               <h3 className="text-sm font-semibold mb-4">Tickets by Status</h3>
@@ -156,7 +156,7 @@ export default function DashboardContent({ data, userName }: Props) {
 
             {/* Recent tickets */}
             <div
-              className="col-span-3 rounded-xl border"
+              className="col-span-1 md:col-span-3 rounded-xl border"
               style={{ backgroundColor: "#141418", borderColor: "#1e1e2a" }}
             >
               <div

@@ -65,13 +65,14 @@ export default function PortalSidebar({ isManager, isAdmin, userEmail, userName,
 
   const isActive = (href: string) => {
     if (href === "/portal") return pathname === "/portal";
+    if (href === "/portal/manager") return pathname === "/portal/manager";
     return pathname.startsWith(href);
   };
 
   async function handleSignOut() {
     await signOut();
-    router.push("/");
-    router.refresh();
+    // Hard navigation clears all client-side state and cached session
+    window.location.href = "/";
   }
 
   function handleNavClick() {
