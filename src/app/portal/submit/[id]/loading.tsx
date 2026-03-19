@@ -13,7 +13,7 @@ function Pulse({ style }: { style?: React.CSSProperties }) {
 
 export default function Loading() {
   return (
-    <div className="max-w-3xl mx-auto">
+    <div className="max-w-3xl">
       <Pulse style={{ width: 80, height: 14, marginBottom: 24 }} />
       <Pulse style={{ width: 250, height: 28, marginBottom: 8 }} />
       <Pulse style={{ width: 180, height: 14, marginBottom: 32 }} />
