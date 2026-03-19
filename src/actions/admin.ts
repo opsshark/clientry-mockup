@@ -370,7 +370,17 @@ export async function updateRequestTypeOrder(
   const { portalId } = await requireAdmin();
   const supabase = getServiceClient();
 
-  // Upsert all in parallel
+  // Get existing enabled states so we don't accidentally re-enable disabled types
+  const { data: existing } = await supabase
+    .from("portal_request_types")
+    .select("jira_request_type_id, enabled")
+    .eq("portal_id", portalId);
+
+  const enabledMap = new Map(
+    (existing ?? []).map((e) => [e.jira_request_type_id, e.enabled])
+  );
+
+  // Upsert all in parallel, preserving existing enabled state
   await Promise.all(
     items.map(({ jiraId, displayOrder }) =>
       supabase
@@ -380,7 +390,7 @@ export async function updateRequestTypeOrder(
             portal_id: portalId,
             jira_request_type_id: jiraId,
             display_order: displayOrder,
-            enabled: true,
+            enabled: enabledMap.get(jiraId) ?? true,
           },
           { onConflict: "portal_id,jira_request_type_id", ignoreDuplicates: false }
         )

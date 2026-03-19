@@ -429,3 +429,39 @@ export async function getProformaForm(
 
   return res.json() as Promise<ProformaForm>;
 }
+
+/**
+ * Create or find a JSM customer by email with a display name.
+ * If the customer already exists, JSM returns 409 — we treat that as success.
+ * This ensures raiseOnBehalfOf shows the customer's real name, not just their email.
+ */
+export async function createOrFindCustomer(
+  config: JiraConfig,
+  email: string,
+  displayName: string
+): Promise<{ success: boolean; error?: string }> {
+  const base = await getApiBase(config);
+  const url = `${base}/rest/servicedeskapi/customer`;
+
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        ...getAuthHeaders(config),
+        "X-ExperimentalApi": "opt-in",
+      },
+      body: JSON.stringify({ email, displayName }),
+      cache: "no-store",
+    });
+
+    // 201 = created, 409 = already exists — both are fine
+    if (res.status === 201 || res.status === 409) {
+      return { success: true };
+    }
+
+    const body = await res.text();
+    return { success: false, error: `JSM customer API ${res.status}: ${body}` };
+  } catch (err) {
+    return { success: false, error: String(err) };
+  }
+}
