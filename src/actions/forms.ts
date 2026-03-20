@@ -7,6 +7,7 @@ import {
   getRequestTypeFields,
   getProformaForm,
   createRequest,
+  createOrFindCustomer,
   type RequestType,
   type RequestTypeField,
   type ProformaForm,
@@ -131,6 +132,14 @@ export async function submitRequest(
     } else {
       jiraFields[key] = value;
     }
+  }
+
+  // Ensure customer exists in Jira with their display name before creating the ticket
+  if (user?.email) {
+    const displayName = user.firstName && user.lastName
+      ? `${user.firstName} ${user.lastName}`
+      : user.email;
+    await createOrFindCustomer(config, user.email, displayName);
   }
 
   const result = await createRequest(
