@@ -496,26 +496,33 @@ export async function inviteUser(
     let config;
     try {
       config = await getJiraConfig(portalId);
-    } catch {
+      console.log("[invite] Using portal-specific Jira config");
+    } catch (configErr) {
+      console.log("[invite] Portal config failed, falling back to env vars:", String(configErr));
       config = await getJiraConfig(); // env-var fallback
     }
+    console.log("[invite] Jira config loaded, baseUrl:", config.baseUrl);
+
     const customerResult = await createOrFindCustomer(
       config,
       normalizedEmail,
       normalizedEmail // use email as display name until they set their name
     );
+    console.log("[invite] createOrFindCustomer result:", JSON.stringify(customerResult));
 
     if (customerResult.success && customerResult.accountId) {
       // Add customer to the service desk project so they appear in the customer list
-      await addCustomerToServiceDesk(config, [customerResult.accountId]);
+      const sdResult = await addCustomerToServiceDesk(config, [customerResult.accountId]);
+      console.log("[invite] addCustomerToServiceDesk result:", JSON.stringify(sdResult));
 
       // Assign to org if one was selected
       if (jiraOrgId) {
-        await addUserToOrganization(config, jiraOrgId, [customerResult.accountId]);
+        const orgResult = await addUserToOrganization(config, jiraOrgId, [customerResult.accountId]);
+        console.log("[invite] addUserToOrganization result:", JSON.stringify(orgResult));
       }
     }
-  } catch {
-    // Jira provisioning is best-effort — don't fail the invite
+  } catch (err) {
+    console.error("[invite] Jira provisioning failed:", String(err));
   }
 
   return { success: true };
