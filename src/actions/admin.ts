@@ -6,9 +6,6 @@ import { getJiraConfig } from "@/lib/config";
 import {
   getRequestTypes,
   getOrganizations,
-  createOrFindCustomer,
-  addCustomerToServiceDesk,
-  addUserToOrganization,
   type RequestType,
 } from "@/lib/jira";
 
@@ -490,24 +487,8 @@ export async function inviteUser(
     return { success: false, error: "Failed to invite user." };
   }
 
-  // Add customer to service desk in Jira (best-effort, don't block invite)
-  // Uses email-based endpoint — no Jira admin permission needed
-  try {
-    let config;
-    try {
-      config = await getJiraConfig(portalId);
-    } catch {
-      config = await getJiraConfig(); // env-var fallback
-    }
-
-    const sdResult = await addCustomerToServiceDesk(config, [normalizedEmail]);
-    console.log("[invite] addCustomerToServiceDesk result:", JSON.stringify(sdResult));
-
-    // TODO: org assignment requires accountId — re-enable when we have Jira admin perms
-    // if (jiraOrgId) { ... }
-  } catch (err) {
-    console.error("[invite] Jira provisioning failed:", String(err));
-  }
+  // Jira customer creation happens automatically on first ticket submission
+  // via raiseOnBehalfOf — no need to pre-create here.
 
   return { success: true };
 }
