@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
+import { getDemoSession, endDemoSession } from "./demo";
 
 
 /**
@@ -52,25 +53,50 @@ export async function sendMagicLink(
 }
 
 /**
- * Sign out the current user.
+ * Sign out the current user (or end demo session).
  */
 export async function signOut(): Promise<void> {
+  // Clear demo session if active
+  const demo = await getDemoSession();
+  if (demo) {
+    await endDemoSession();
+    return;
+  }
+
   const supabase = await createClient();
   await supabase.auth.signOut({ scope: "global" });
 }
 
-/**
- * Get the current authenticated user's portal info.
- * Returns null if not authenticated.
- */
-export async function getCurrentUser(): Promise<{
+export interface CurrentUser {
   email: string;
   role: "user" | "manager" | "admin";
   portalId: string;
   jiraOrgId: string | null;
   firstName: string | null;
   lastName: string | null;
-} | null> {
+  isDemo: boolean;
+}
+
+/**
+ * Get the current authenticated user's portal info.
+ * Returns null if not authenticated.
+ * Also checks for demo sessions (cookie-based, no Supabase auth).
+ */
+export async function getCurrentUser(): Promise<CurrentUser | null> {
+  // Check for demo session first
+  const demo = await getDemoSession();
+  if (demo) {
+    return {
+      email: "demo@clientry.app",
+      role: demo.role,
+      portalId: "demo",
+      jiraOrgId: null,
+      firstName: "Demo",
+      lastName: demo.role === "user" ? "User" : "Manager",
+      isDemo: true,
+    };
+  }
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -99,6 +125,7 @@ export async function getCurrentUser(): Promise<{
     jiraOrgId: portalUser.jira_org_id,
     firstName: portalUser.first_name,
     lastName: portalUser.last_name,
+    isDemo: false,
   };
 }
 

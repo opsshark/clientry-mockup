@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Mail, Layers, ArrowRight, Building2, Loader2 } from "lucide-react";
 import { sendMagicLink } from "@/actions/auth";
+import { startDemoSession } from "@/actions/demo";
 import { createClient } from "@/lib/supabase/client";
 
 export default function LoginPage() {
@@ -12,6 +13,7 @@ export default function LoginPage() {
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [demoLoading, setDemoLoading] = useState<"user" | "manager" | null>(null);
 
   // Handle hash-based auth tokens (implicit flow fallback)
   useEffect(() => {
@@ -41,6 +43,18 @@ export default function LoginPage() {
       setError(result.error ?? "Something went wrong");
     }
     setLoading(false);
+  }
+
+  async function handleStartDemo(role: "user" | "manager") {
+    setDemoLoading(role);
+    try {
+      await startDemoSession(role);
+      router.push(role === "manager" ? "/portal/manager" : "/portal");
+      router.refresh();
+    } catch {
+      setError("Failed to start demo session");
+      setDemoLoading(null);
+    }
   }
 
   return (
@@ -158,24 +172,34 @@ export default function LoginPage() {
         {/* Demo shortcuts */}
         <div className="space-y-3">
           <button
-            onClick={() => router.push('/portal')}
+            onClick={() => handleStartDemo("user")}
+            disabled={demoLoading !== null}
             className="w-full py-3 rounded-lg font-medium text-sm flex items-center justify-center gap-2 transition-all border"
             style={{
               backgroundColor: 'rgba(6,182,212,0.08)',
               borderColor: 'rgba(6,182,212,0.25)',
               color: '#06b6d4'
             }}>
-            Demo: Enter as End User
+            {demoLoading === "user" ? (
+              <Loader2 size={16} className="animate-spin" />
+            ) : (
+              "Try Demo: End User"
+            )}
           </button>
           <button
-            onClick={() => router.push('/portal/manager')}
+            onClick={() => handleStartDemo("manager")}
+            disabled={demoLoading !== null}
             className="w-full py-3 rounded-lg font-medium text-sm flex items-center justify-center gap-2 transition-all border"
             style={{
               backgroundColor: 'rgba(148,163,184,0.06)',
               borderColor: '#1e1e2a',
               color: '#94a3b8'
             }}>
-            Demo: Enter as Manager
+            {demoLoading === "manager" ? (
+              <Loader2 size={16} className="animate-spin" />
+            ) : (
+              "Try Demo: Manager"
+            )}
           </button>
         </div>
       </div>

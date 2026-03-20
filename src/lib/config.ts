@@ -29,8 +29,8 @@ function getServiceClient() {
 export async function getJiraConfig(
   portalId?: string | null
 ): Promise<JiraConfig> {
-  // ─── Env-var fallback for pre-auth dev mode ───
-  if (!portalId) {
+  // ─── Env-var fallback for pre-auth dev mode or demo sessions ───
+  if (!portalId || portalId === "demo") {
     return getJiraConfigFromEnv();
   }
 

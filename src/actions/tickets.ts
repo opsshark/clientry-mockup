@@ -246,8 +246,8 @@ export async function getMyTickets(): Promise<TicketListItem[]> {
   const data = await getMyRequests(config);
   let requests = data.values;
 
-  // Filter to user's own tickets when authenticated
-  if (user?.email) {
+  // Filter to user's own tickets when authenticated (skip for demo — show all)
+  if (user?.email && !user.isDemo) {
     requests = requests.filter(
       (req) =>
         req.reporter.emailAddress?.toLowerCase() === user.email.toLowerCase()
@@ -326,8 +326,8 @@ export async function getTicketDetail(
   // Try cache
   const cached = await getCachedDetail(user.portalId, issueKey);
   if (cached) {
-    // Verify access even on cache hit
-    if (!canAccessTicket(user, cached.reporterEmail)) {
+    // Verify access even on cache hit (demo users can see all)
+    if (!user.isDemo && !canAccessTicket(user, cached.reporterEmail)) {
       throw new Error("You do not have access to this ticket.");
     }
     return cached;
@@ -338,8 +338,8 @@ export async function getTicketDetail(
     getRequestComments(config, issueKey),
   ]);
 
-  // Verify the user can access this ticket
-  if (!canAccessTicket(user, request.reporter.emailAddress)) {
+  // Verify the user can access this ticket (demo users can see all)
+  if (!user.isDemo && !canAccessTicket(user, request.reporter.emailAddress)) {
     throw new Error("You do not have access to this ticket.");
   }
 
@@ -403,9 +403,9 @@ export async function addComment(
   if (!user) throw new Error("Not authenticated");
   const config = await getJiraConfig(user.portalId);
 
-  // Verify the user can access this ticket before allowing a comment
+  // Verify the user can access this ticket before allowing a comment (demo users can access all)
   const request = await getRequestByKey(config, issueKey);
-  if (!canAccessTicket(user, request.reporter.emailAddress)) {
+  if (!user.isDemo && !canAccessTicket(user, request.reporter.emailAddress)) {
     throw new Error("You do not have access to this ticket.");
   }
 

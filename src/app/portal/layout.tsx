@@ -15,7 +15,7 @@ export default async function PortalLayout({
     redirect("/welcome");
   }
 
-  const portal = user?.portalId
+  const portal = user?.portalId && user.portalId !== "demo"
     ? await getPortalData(user.portalId)
     : null;
 
@@ -30,7 +30,7 @@ export default async function PortalLayout({
         isAdmin={user?.role === "admin"}
         userEmail={user?.email ?? null}
         userName={displayName}
-        portalName={portal?.name ?? null}
+        portalName={portal?.name ?? (user?.isDemo ? "Acme Corp" : null)}
         portalLogoUrl={portal?.logoUrl ?? null}
         primaryColor={portal?.primaryColor ?? "#06b6d4"}
       />

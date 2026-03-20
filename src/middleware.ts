@@ -40,8 +40,11 @@ export async function middleware(request: NextRequest) {
   const isWelcomePage = pathname === "/welcome";
 
   if (authEnabled) {
+    // Allow demo sessions through (cookie-based, no Supabase auth)
+    const hasDemoCookie = request.cookies.has("clientry_demo");
+
     // Protect /portal/* and /welcome routes — redirect to login if not authenticated
-    if ((isPortalRoute || isWelcomePage) && !user) {
+    if ((isPortalRoute || isWelcomePage) && !user && !hasDemoCookie) {
       const url = request.nextUrl.clone();
       url.pathname = "/";
       url.searchParams.set("redirect", pathname);
