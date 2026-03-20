@@ -453,7 +453,12 @@ export async function getJiraOrganizations(): Promise<
 > {
   const { portalId } = await requireAdmin();
   try {
-    const config = await getJiraConfig(portalId);
+    let config;
+    try {
+      config = await getJiraConfig(portalId);
+    } catch {
+      config = await getJiraConfig(); // env-var fallback
+    }
     const result = await getOrganizations(config);
     return result.values ?? [];
   } catch {
@@ -486,8 +491,14 @@ export async function inviteUser(
   }
 
   // Create customer in Jira and assign to org (best-effort, don't block invite)
+  // Try portal-specific config first, fall back to env vars
   try {
-    const config = await getJiraConfig(portalId);
+    let config;
+    try {
+      config = await getJiraConfig(portalId);
+    } catch {
+      config = await getJiraConfig(); // env-var fallback
+    }
     const customerResult = await createOrFindCustomer(
       config,
       normalizedEmail,
