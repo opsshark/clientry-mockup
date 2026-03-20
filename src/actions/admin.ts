@@ -7,6 +7,7 @@ import {
   getRequestTypes,
   getOrganizations,
   createOrFindCustomer,
+  addCustomerToServiceDesk,
   addUserToOrganization,
   type RequestType,
 } from "@/lib/jira";
@@ -493,8 +494,14 @@ export async function inviteUser(
       normalizedEmail // use email as display name until they set their name
     );
 
-    if (customerResult.success && customerResult.accountId && jiraOrgId) {
-      await addUserToOrganization(config, jiraOrgId, [customerResult.accountId]);
+    if (customerResult.success && customerResult.accountId) {
+      // Add customer to the service desk project so they appear in the customer list
+      await addCustomerToServiceDesk(config, [customerResult.accountId]);
+
+      // Assign to org if one was selected
+      if (jiraOrgId) {
+        await addUserToOrganization(config, jiraOrgId, [customerResult.accountId]);
+      }
     }
   } catch {
     // Jira provisioning is best-effort — don't fail the invite

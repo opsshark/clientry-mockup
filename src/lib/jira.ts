@@ -465,6 +465,37 @@ export async function addUserToOrganization(
 }
 
 /**
+ * Add a customer to a specific service desk project.
+ * This makes them visible in the service desk's customer list.
+ */
+export async function addCustomerToServiceDesk(
+  config: JiraConfig,
+  accountIds: string[]
+): Promise<{ success: boolean; error?: string }> {
+  const base = await getApiBase(config);
+  const url = `${base}/rest/servicedeskapi/servicedesk/${config.serviceDeskId}/customer`;
+
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: getAuthHeaders(config),
+      body: JSON.stringify({ accountIds }),
+      cache: "no-store",
+    });
+
+    // 204 = success, 200 = success
+    if (res.ok || res.status === 204) {
+      return { success: true };
+    }
+
+    const body = await res.text();
+    return { success: false, error: `Add to service desk API ${res.status}: ${body}` };
+  } catch (err) {
+    return { success: false, error: String(err) };
+  }
+}
+
+/**
  * Create or find a JSM customer by email with a display name.
  * If the customer already exists, JSM returns 409 — we treat that as success.
  * This ensures raiseOnBehalfOf shows the customer's real name, not just their email.
