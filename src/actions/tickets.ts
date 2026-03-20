@@ -220,10 +220,13 @@ function formatFieldValue(value: unknown): string {
  */
 function canAccessTicket(
   user: { email: string; role: string },
-  reporterEmail: string
+  reporterEmail: string | undefined | null
 ): boolean {
   if (user.role === "admin" || user.role === "manager") return true;
-  return user.email.toLowerCase() === reporterEmail?.toLowerCase();
+  // If reporter email is private/null, allow access if the ticket was
+  // returned by the JSM API (which already enforces participant access)
+  if (!reporterEmail) return true;
+  return user.email.toLowerCase() === reporterEmail.toLowerCase();
 }
 
 // ─── Public API ──────────────────────────────────────────────
