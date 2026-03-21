@@ -160,30 +160,5 @@ export async function updateUserName(
     return { success: false, error: "Failed to update name." };
   }
 
-  // Also create/update the customer in Jira so raiseOnBehalfOf shows their real name
-  try {
-    const { getJiraConfig } = await import("@/lib/config");
-    const { createOrFindCustomer } = await import("@/lib/jira");
-
-    // Look up the user's portal to get Jira config
-    const { data: portalUser } = await service
-      .from("portal_users")
-      .select("portal_id")
-      .eq("email", user.email.toLowerCase())
-      .single();
-
-    if (portalUser?.portal_id) {
-      const config = await getJiraConfig(portalUser.portal_id);
-      if (config) {
-        const displayName = `${firstName.trim()} ${lastName.trim()}`;
-        await createOrFindCustomer(config, user.email, displayName);
-        // Non-blocking — if Jira customer creation fails, we still saved the name
-      }
-    }
-  } catch {
-    // Jira customer creation is best-effort — don't fail the welcome flow
-    console.error("Failed to create Jira customer (non-blocking)");
-  }
-
   return { success: true };
 }
